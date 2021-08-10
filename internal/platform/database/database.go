@@ -12,6 +12,12 @@ type DB struct {
 	*badger.DB
 }
 
+const (
+	KeyItem     string = "messages/%s"
+	KeySchedule string = "schedule/%d"
+	KeyGlobal   string = "messages"
+)
+
 func New() (*DB, error) {
 	if instance == nil {
 		opts := badger.DefaultOptions(Path()).WithLoggingLevel(badger.WARNING)
@@ -59,4 +65,16 @@ func (db *DB) Get(key []byte) ([]byte, error) {
 		return []byte{}, err
 	}
 	return val, nil
+}
+
+func (db *DB) Schedule(id string, timestamp string, message []byte) error {
+	// create message
+	// add id to schedule list
+	// add id to global list
+	return db.Update(func(txn *badger.Txn) error {
+		// itemKey := []byte(fmt.Sprintf(KeyItem, id))
+		// txn.Set(itemKey, )
+
+		return nil
+	})
 }

@@ -1,11 +1,14 @@
 package schedule
 
 import (
+	"bytes"
+	"encoding/gob"
 	"fmt"
 	"strconv"
 	"time"
 
 	"github.com/google/uuid"
+	"hq.0xa1.red/axdx/scheduler/internal/platform/database"
 )
 
 type ItemStatus int
@@ -16,64 +19,93 @@ const (
 )
 
 type Message struct {
+	ID        uuid.UUID  `json:"id"`
 	Topic     string     `json:"topic"`
 	ItemID    uuid.UUID  `json:"item_id"`
 	Status    ItemStatus `json:"status"`
 	Timestamp time.Time  `json:"timestamp"`
 }
 
-func (m Message) ToSlice() []string {
-	return []string{
-		"topic",
-		m.Topic,
-		"item_id",
-		m.ItemID.String(),
-		"status",
-		fmt.Sprintf("%d", m.Status),
-		"timestamp",
-		fmt.Sprintf("%d", m.Timestamp.UnixNano()),
+func NewMessage(scheduledAt time.Time, topic string, itemID uuid.UUID) Message {
+	return Message{
+		ID:        uuid.New(),
+		Topic:     topic,
+		ItemID:    itemID,
+		Status:    ItemStatusPending,
+		Timestamp: scheduledAt,
 	}
 }
 
-func MessageFromSlice(src []string) (Message, error) {
-	mapping := make(map[string]string)
-	for i := 0; i < len(src); i = i + 2 {
-		if isValidKey(src[i]) {
-			mapping[src[i]] = src[i+1]
-		}
+func (m Message) GobEncode() ([]byte, error) {
+	data := map[string]string{
+		"id":        m.ID.String(),
+		"topic":     m.Topic,
+		"item_id":   m.ItemID.String(),
+		"status":    fmt.Sprintf("%d", m.Status),
+		"timestamp": fmt.Sprintf("%d", m.Timestamp.UnixNano()),
 	}
 
-	m := Message{}
-	var err error
-	for key, val := range mapping {
+	buf := bytes.NewBuffer([]byte{})
+	encoder := gob.NewEncoder(buf)
+	err := encoder.Encode(data)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+func (m *Message) GobDecode(r []byte) error {
+	buf := bytes.NewBuffer(r)
+	decoder := gob.NewDecoder(buf)
+
+	data := map[string]string{}
+	err := decoder.Decode(&data)
+	if err != nil {
+		return err
+	}
+
+	for key, value := range data {
+		if !isValidKey(key) {
+			continue
+		}
+
 		switch key {
+		case "id":
+			i, err := uuid.Parse(value)
+			if err != nil {
+				return err
+			}
+			m.ID = i
 		case "topic":
-			m.Topic = val
+			m.Topic = value
 		case "item_id":
-			m.ItemID, err = uuid.Parse(val)
+			i, err := uuid.Parse(value)
 			if err != nil {
-				return Message{}, err
+				return err
 			}
+			m.ItemID = i
 		case "status":
-			statusInt, err := strconv.Atoi(val)
+			i, err := strconv.ParseInt(value, 10, 0)
 			if err != nil {
-				return Message{}, err
+				return err
 			}
-			m.Status = ItemStatus(statusInt)
+			m.Status = ItemStatus(int(i))
 		case "timestamp":
-			tstamp, err := strconv.ParseInt(val, 10, 64)
+			i, err := strconv.ParseInt(value, 10, 64)
 			if err != nil {
-				return Message{}, err
+				return err
 			}
-			m.Timestamp = time.Unix(0, tstamp)
+			m.Timestamp = time.Unix(0, i)
 		}
 	}
 
-	return m, nil
+	return nil
 }
 
 func isValidKey(key string) bool {
 	validKeys := []string{
+		"id",
 		"topic",
 		"item_id",
 		"status",
@@ -88,7 +120,16 @@ func isValidKey(key string) bool {
 	return false
 }
 
-func Add(timestamp time.Time, message []string) (string, error) {
+func Add(message Message) error {
+	unixTimestamp := fmt.Sprintf("%d", message.Timestamp.UnixNano())
 
-	return "", nil
+	db, err := database.New()
+	if err != nil {
+		return err
+	}
+
+	m := []byte{}
+	err = db.Schedule(message.ID.String(), unixTimestamp, m)
+
+	return err
 }
