@@ -15,7 +15,6 @@ import (
 )
 
 func scheduleHandler(w http.ResponseWriter, r *http.Request) {
-	logger.Infow("http request", "method", r.Method, "url", r.URL.String())
 	decoder := json.NewDecoder(r.Body)
 
 	post := PostData{}

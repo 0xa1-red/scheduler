@@ -53,4 +53,7 @@ func init() {
 	router.HandleFunc("/schedule", scheduleHandler).Methods(http.MethodPost)
 
 	router.HandleFunc("/test", testHandler).Methods(http.MethodGet)
+
+	lmw := LoggingMiddleware{}
+	router.Use(lmw.MiddlewareFn)
 }
