@@ -1,13 +1,17 @@
 package database
 
 var (
-	path string = "/tmp/badger"
+	backend DBKind = KindRedis
 )
 
-func Path() string {
-	return path
+func Backend() DBKind {
+	return backend
 }
 
-func SetPath(newPath string) {
-	path = newPath
+func SetBackend(newBackend string) {
+	kind := DBKind(newBackend)
+	switch kind {
+	case KindRedis:
+		backend = kind
+	}
 }
