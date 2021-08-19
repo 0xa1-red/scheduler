@@ -1,15 +1,15 @@
 version: '3'
 
 services:
-    etcd:
-        image: bitnami/etcd:3
+    redis:
+        image: bitnami/redis:6.2
         environment:
-            - "ALLOW_NONE_AUTHENTICATION=yes"
-        volumes:
-            - etcd_data:/bitnami/etcd
+            - "REDIS_PASSWORD=test"
         ports:
-            - 22379:2379
-
-volumes:
-    etcd_data:
-        driver: local
+            - 6379:6379
+    nats:
+        image: bitnami/nats:2.3.4
+        ports:
+            - 4222:4222
+            - 6222:6222
+            - 8222:8222
