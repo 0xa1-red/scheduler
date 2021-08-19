@@ -20,22 +20,20 @@ func Add(ctx context.Context, message models.Message) error {
 	return err
 }
 
-func Collect(ctx context.Context, userID uuid.UUID) ([]models.Message, error) {
-	collection := make([]models.Message, 0)
-
+func Collect(ctx context.Context, userID uuid.UUID) ([]*models.Message, error) {
 	db, err := database.New()
 	if err != nil {
-		return collection, err
+		return nil, err
 	}
 
 	queue, err := db.GetQueue(ctx, userID, time.Now())
 	if err != nil {
-		return collection, nil
+		return nil, err
 	}
 
 	for _, item := range queue {
 		log.Printf("%+v", item)
 	}
 
-	return collection, nil
+	return queue, nil
 }

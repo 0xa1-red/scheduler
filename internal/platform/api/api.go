@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"hq.0xa1.red/axdx/scheduler/internal/platform/database/models"
+	"hq.0xa1.red/axdx/scheduler/internal/platform/nats"
 	"hq.0xa1.red/axdx/scheduler/internal/schedule"
 )
 
@@ -121,8 +122,28 @@ func init() {
 			return
 		}
 
-		for _, m := range models {
-			log.Printf("%+v", m)
+		queue, err := nats.NewNats()
+		if err != nil {
+			Err(w, http.StatusInternalServerError, fmt.Errorf("%s: connecting to NATS: %w", r.URL.String(), err))
+			return
 		}
+		for _, m := range models {
+			if m.Topic == "" {
+				m.Topic = schedule.DefaultTopic()
+			}
+			buf, err := json.Marshal(m)
+			if err != nil {
+				Err(w, http.StatusInternalServerError, fmt.Errorf("%s: connecting to NATS: %w", r.URL.String(), err))
+				return
+			}
+			subject := fmt.Sprintf("%s.%s", m.Topic, m.ID.String())
+			log.Printf("trying to publish item %s into subject %s", m.ID.String(), subject)
+			if err := queue.Publish(subject, buf); err != nil {
+				Err(w, http.StatusInternalServerError, fmt.Errorf("%s: publishing to NATS (%s): %w", r.URL.String(), m.Topic, err))
+				return
+			}
+		}
+
+		w.Write([]byte("successfully triggered queue")) // nolint
 	})
 }
