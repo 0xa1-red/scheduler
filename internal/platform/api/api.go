@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -45,7 +44,7 @@ func Start() *API {
 	}
 
 	go func() {
-		log.Printf("starting http server on %s", Address())
+		logger.Infow("starting http server", "address", Address())
 		api.ErrorChannel <- api.ListenAndServe()
 	}()
 
@@ -61,13 +60,15 @@ func init() {
 	})
 
 	router.HandleFunc("/schedule", func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("%s - %s %s", time.Now().Format(time.RFC1123), r.Method, r.URL.String())
+		logger.Infow("http request", "method", r.Method, "url", r.URL.String())
 		decoder := json.NewDecoder(r.Body)
 
 		post := PostData{}
 		err := decoder.Decode(&post)
 		if err != nil {
-			log.Printf("json: %v", err)
+			err := fmt.Errorf("%s: decoding body: %w", r.URL.String(), err)
+			Err(w, http.StatusInternalServerError, err)
+			return
 		}
 
 		ownerID := post.GetString("owner_id", "")
@@ -137,7 +138,7 @@ func init() {
 				return
 			}
 			subject := fmt.Sprintf("%s.%s", m.Topic, m.ID.String())
-			log.Printf("trying to publish item %s into subject %s", m.ID.String(), subject)
+			logger.Infow("publishing message", "subject", subject, "item_id", m.ItemID.String(), "message_id", m.ID.String())
 			if err := queue.Publish(subject, buf); err != nil {
 				Err(w, http.StatusInternalServerError, fmt.Errorf("%s: publishing to NATS (%s): %w", r.URL.String(), m.Topic, err))
 				return
