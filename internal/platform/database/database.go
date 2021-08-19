@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"hq.0xa1.red/axdx/scheduler/internal/platform/database/etcd"
 	"hq.0xa1.red/axdx/scheduler/internal/platform/database/models"
 	"hq.0xa1.red/axdx/scheduler/internal/platform/database/redis"
 )
@@ -36,12 +35,10 @@ type Connection interface {
 // We make sure the available clients implement the Connection interface
 var (
 	_ Connection = &redis.Client{}
-	_ Connection = &etcd.Client{}
 )
 
 func Close() []error {
 	errors := make([]error, 2)
-	errors[0] = etcd.Close()
 	errors[1] = redis.Close()
 	return errors
 }
@@ -51,8 +48,6 @@ func New() (Connection, error) {
 	switch Backend() {
 	case KindRedis:
 		return redis.NewClient()
-	case KindEtcd:
-		return etcd.NewClient()
 	default:
 		return nil, fmt.Errorf("error: unknown database type")
 	}

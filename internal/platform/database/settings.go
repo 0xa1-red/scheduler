@@ -11,7 +11,7 @@ func Backend() DBKind {
 func SetBackend(newBackend string) {
 	kind := DBKind(newBackend)
 	switch kind {
-	case KindRedis, KindEtcd:
+	case KindRedis:
 		backend = kind
 	}
 }
