@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"hq.0xa1.red/axdx/scheduler/internal/logging"
 	"hq.0xa1.red/axdx/scheduler/internal/platform/api"
 	"hq.0xa1.red/axdx/scheduler/internal/platform/database"
 	"hq.0xa1.red/axdx/scheduler/internal/platform/database/redis"
@@ -16,19 +17,20 @@ func main() {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 
+	logger := logging.MustNew()
+
 	database.SetBackend(string(database.KindRedis))
 
-	//etcd.SetEtcdEndpoints("localhost:22379")
 	redis.SetPassword("test")
 
-	_, err := database.New()
-	if err != nil {
-		log.Panic(err)
+	_, dbErr := database.New()
+	if dbErr != nil {
+		logger.Panicw("error connecting to the database", "kind", database.Backend(), "error", dbErr)
 	}
 
 	// TODO make this close all clients
 	defer func() {
-		redis.Close()
+		database.Close()
 	}()
 
 	api.SetAddress("127.0.0.1:8080")
@@ -38,12 +40,13 @@ Loop:
 	for {
 		select {
 		case <-signals:
-			log.Println("shutting down http server")
+			fmt.Printf("\r") // This just to remove the nasty ^C :shrug:
+			logger.Info("shutting down http server")
 			httpServer.Shutdown(context.TODO()) // nolint
 			break Loop
 		case err := <-httpServer.ErrorChannel:
 			if err != nil {
-				log.Fatalf("http server error: %v", err)
+				logger.Errorw("http server error", "error", err)
 			}
 			break Loop
 		}

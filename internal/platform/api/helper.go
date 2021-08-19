@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 )
 
@@ -43,7 +42,8 @@ func (pd *PostData) GetString(key, def string) string {
 	return def
 }
 
+// Err logs an error message and writes an error to the response
 func Err(w http.ResponseWriter, code int, err error) {
-	log.Printf("error: %v", err)
+	logger.Error(err)
 	http.Error(w, http.StatusText(code), code)
 }
