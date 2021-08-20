@@ -2,18 +2,32 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"hq.0xa1.red/axdx/scheduler/internal/config"
 	"hq.0xa1.red/axdx/scheduler/internal/logging"
 	"hq.0xa1.red/axdx/scheduler/internal/platform/api"
 	"hq.0xa1.red/axdx/scheduler/internal/platform/database"
 	"hq.0xa1.red/axdx/scheduler/internal/platform/database/redis"
 )
 
+var (
+	configPath string
+)
+
 func main() {
+	flag.StringVar(&configPath, "config", "./config.yaml", "path to config file")
+	flag.Parse()
+
+	if err := config.ConfigurePackages(configPath); err != nil {
+		log.Panic(err)
+	}
+
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 

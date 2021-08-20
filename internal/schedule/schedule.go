@@ -2,7 +2,6 @@ package schedule
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -29,10 +28,6 @@ func Collect(ctx context.Context, userID uuid.UUID) ([]*models.Message, error) {
 	queue, err := db.GetQueue(ctx, userID, time.Now())
 	if err != nil {
 		return nil, err
-	}
-
-	for _, item := range queue {
-		log.Printf("%+v", item)
 	}
 
 	return queue, nil
