@@ -31,8 +31,4 @@ issues:
 
 run:
   # give it 1 min timeout
-  timeout: 1m
-  
-  # skip the following files
-  skip-files:
-    - "_protoactor\\.go$" 
+  timeout: 1m 
