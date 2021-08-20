@@ -3,9 +3,12 @@ module hq.0xa1.red/axdx/scheduler
 go 1.16
 
 require (
+	github.com/alecthomas/colour v0.1.0
 	github.com/go-redis/redis/v8 v8.11.2
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
+	github.com/magefile/mage v1.11.0
+	github.com/mattn/go-isatty v0.0.13 // indirect
 	github.com/nats-io/nats-server/v2 v2.3.4 // indirect
 	github.com/nats-io/nats.go v1.11.1-0.20210623165838-4b75fc59ae30
 	go.uber.org/zap v1.19.0
