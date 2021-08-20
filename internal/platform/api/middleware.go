@@ -17,9 +17,8 @@ func (w *statusWriter) WriteHeader(s int) {
 }
 
 func (w *statusWriter) Write(d []byte) (int, error) {
-	n, err := w.ResponseWriter.Write(d)
-	w.size += n
-	return n, err
+	w.size += len(d)
+	return w.ResponseWriter.Write(d)
 }
 
 type LoggingMiddleware struct{}

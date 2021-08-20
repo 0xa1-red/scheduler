@@ -24,6 +24,8 @@ type Config struct {
 			Address  string `yaml:"address"`
 			Password string `yaml:"password"`
 			Database int    `yaml:"database"`
+			Retries  int    `yaml:"retries"`
+			Interval string `yaml:"interval"`
 		} `yaml:"redis"`
 	}
 	NATS struct {
@@ -73,6 +75,12 @@ func ConfigurePackages(configPath string) error {
 		}
 		if database, ok := cfg.Get("database.redis.database").(int); ok {
 			redis.SetDatabase(database)
+		}
+		if retries, ok := cfg.Get("database.redis.retries").(int); ok {
+			redis.SetRetries(retries)
+		}
+		if interval, ok := cfg.Get("database.redis.interval").(string); ok && interval != "" {
+			redis.SetInterval(interval)
 		}
 	}
 

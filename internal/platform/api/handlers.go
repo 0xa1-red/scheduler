@@ -68,6 +68,22 @@ func scheduleHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
+	response := map[string]interface{}{
+		"result":     "OK",
+		"message_id": message.ID.String(),
+	}
+	w.Header().Set("Content-Type", "application/json")
+	res, err := json.Marshal(response)
+	if err != nil {
+		Err(w, http.StatusInternalServerError, fmt.Errorf("%s: marshaling response: %v", r.URL.String(), err))
+	}
+
+	w.Write(res) // nolint
+}
+
+func healthcheckHandler(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("OK")) // nolint
 }
 
 func testHandler(w http.ResponseWriter, r *http.Request) {

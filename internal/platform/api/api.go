@@ -51,7 +51,7 @@ func init() {
 	})
 
 	router.HandleFunc("/schedule", scheduleHandler).Methods(http.MethodPost)
-
+	router.HandleFunc("/health", healthcheckHandler).Methods(http.MethodGet, http.MethodHead)
 	router.HandleFunc("/test", testHandler).Methods(http.MethodGet)
 
 	lmw := LoggingMiddleware{}

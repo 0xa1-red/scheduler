@@ -1,7 +1,7 @@
 package api
 
 var (
-	address string = "0.0.0.0:8080"
+	address string = "0.0.0.0:80"
 )
 
 // Address returns the configured address
