@@ -14,7 +14,7 @@ var queue *Nats
 // NewNats creates a client or returns one if it already exists
 func NewNats() (*Nats, error) {
 	if queue == nil {
-		nc, err := nats.Connect(URL())
+		nc, err := nats.Connect(Address())
 		if err != nil {
 			return nil, err
 		}
