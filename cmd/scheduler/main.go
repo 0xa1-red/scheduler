@@ -17,12 +17,22 @@ import (
 )
 
 var (
+	commitHash string
+	buildtime  string
+	tag        string
+
+	version    bool
 	configPath string
 )
 
 func main() {
+	flag.BoolVar(&version, "version", false, "version information")
 	flag.StringVar(&configPath, "config", "./config.yaml", "path to config file")
 	flag.Parse()
+
+	if version {
+		os.Exit(showVersion())
+	}
 
 	if err := config.ConfigurePackages(configPath); err != nil {
 		log.Panic(err)
@@ -65,4 +75,16 @@ Loop:
 			break Loop
 		}
 	}
+}
+
+func showVersion() int {
+	fmt.Printf(`
+Scheduler (https://hq.0xa1.red/axdx/scheduler)	
+===
+Version: %s
+Commit hash: %s
+Build time: %s
+`, tag, commitHash, buildtime)
+
+	return 0
 }
