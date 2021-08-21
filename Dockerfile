@@ -1,4 +1,5 @@
 FROM golang:1.16-alpine AS build
+RUN apk add --update git
 WORKDIR /go/src/app
 COPY . .
 RUN go mod tidy && go run build/mage.go install
