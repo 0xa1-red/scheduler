@@ -108,10 +108,7 @@ docker_push:
     IMAGE_NAME: registry.0xa1.red:5050/axdx/scheduler 
   stage: build
   script:
-    - wget -q $RELEASE_BIN
-    - chmod 774 ./release
-    - ./release next-version --allow-current > .release_version
-    - export VERSION=$(cat .release_version)
+    - export VERSION=$(cat .next-version)
     - docker build --pull -t $IMAGE_NAME:$VERSION .
     - docker tag $IMAGE_NAME:$VERSION $IMAGE_NAME:latest
     - docker push $IMAGE_NAME:$VERSION
