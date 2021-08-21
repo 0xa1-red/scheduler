@@ -43,7 +43,7 @@ commit_and_tag:
       - .next-version
   allow_failure: true
   only:
-    - master
+    - main
   when: manual
 
 compile:
@@ -100,7 +100,7 @@ compile:
     - tags
   when: manual
   only:
-    - master
+    - main
 
 docker_push:
   variables:
@@ -120,6 +120,6 @@ docker_push:
     - shell-executor
   when: manual
   only:
-    - master
+    - main
   dependencies:
     - commit_and_tag
