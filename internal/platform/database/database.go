@@ -27,8 +27,9 @@ const (
 // Connection is an interface defining a backend that can save
 // scheduled events
 type Connection interface {
-	Schedule(context.Context, models.Message) error
-	GetQueue(context.Context, uuid.UUID, time.Time) ([]*models.Message, error)
+	Schedule(ctx context.Context, message models.Message) error
+	GetQueue(ctx context.Context, userID uuid.UUID, timestamp time.Time) ([]map[string]string, error)
+	Acknowledge(ctx context.Context, messageID uuid.UUID, userID uuid.UUID) error
 	Close() error
 }
 

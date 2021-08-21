@@ -21,6 +21,18 @@ const (
 
 	// ItemStatusDone is the done state for an event
 	ItemStatusDone
+
+	// ItemStatusProcessing is the state representing being picked up but not acknowledged
+	ItemStatusProcessing
+)
+
+const (
+	MapID        string = "id"
+	MapTopic     string = "topic"
+	MapItemID    string = "item_id"
+	MapOwnerID   string = "owner_id"
+	MapStatus    string = "status"
+	MapTimestamp string = "timestamp"
 )
 
 // Message represents a single scheduled event
@@ -48,12 +60,12 @@ func NewMessage(scheduledAt time.Time, topic string, itemID uuid.UUID, ownerID u
 // ToMap returns a map representation of a message
 func (m *Message) ToMap() map[string]interface{} {
 	return map[string]interface{}{
-		"id":        m.ID.String(),
-		"topic":     m.Topic,
-		"item_id":   m.ItemID.String(),
-		"owner_id":  m.OwnerID.String(),
-		"status":    fmt.Sprintf("%d", m.Status),
-		"timestamp": fmt.Sprintf("%d", m.Timestamp.UnixNano()),
+		MapID:        m.ID.String(),
+		MapTopic:     m.Topic,
+		MapItemID:    m.ItemID.String(),
+		MapOwnerID:   m.OwnerID.String(),
+		MapStatus:    fmt.Sprintf("%d", m.Status),
+		MapTimestamp: fmt.Sprintf("%d", m.Timestamp.UnixNano()),
 	}
 }
 
@@ -64,33 +76,33 @@ func (m *Message) FromMap(source map[string]string) error {
 		}
 
 		switch key {
-		case "id":
+		case MapID:
 			i, err := uuid.Parse(value)
 			if err != nil {
 				return err
 			}
 			m.ID = i
-		case "topic":
+		case MapTopic:
 			m.Topic = value
-		case "item_id":
+		case MapItemID:
 			i, err := uuid.Parse(value)
 			if err != nil {
 				return err
 			}
 			m.ItemID = i
-		case "owner_id":
+		case MapOwnerID:
 			i, err := uuid.Parse(value)
 			if err != nil {
 				return err
 			}
 			m.OwnerID = i
-		case "status":
+		case MapStatus:
 			i, err := strconv.ParseInt(value, 10, 0)
 			if err != nil {
 				return err
 			}
 			m.Status = ItemStatus(int(i))
-		case "timestamp":
+		case MapTimestamp:
 			i, err := strconv.ParseInt(value, 10, 64)
 			if err != nil {
 				return err
@@ -105,12 +117,12 @@ func (m *Message) FromMap(source map[string]string) error {
 // GobEncode implements the GobEncoder interface
 func (m *Message) GobEncode() ([]byte, error) {
 	data := map[string]string{
-		"id":        m.ID.String(),
-		"topic":     m.Topic,
-		"item_id":   m.ItemID.String(),
-		"owner_id":  m.OwnerID.String(),
-		"status":    fmt.Sprintf("%d", m.Status),
-		"timestamp": fmt.Sprintf("%d", m.Timestamp.UnixNano()),
+		MapID:        m.ID.String(),
+		MapTopic:     m.Topic,
+		MapItemID:    m.ItemID.String(),
+		MapOwnerID:   m.OwnerID.String(),
+		MapStatus:    fmt.Sprintf("%d", m.Status),
+		MapTimestamp: fmt.Sprintf("%d", m.Timestamp.UnixNano()),
 	}
 
 	buf := bytes.NewBuffer([]byte{})
@@ -140,33 +152,33 @@ func (m *Message) GobDecode(r []byte) error {
 		}
 
 		switch key {
-		case "id":
+		case MapID:
 			i, err := uuid.Parse(value)
 			if err != nil {
 				return err
 			}
 			m.ID = i
-		case "topic":
+		case MapTopic:
 			m.Topic = value
-		case "item_id":
+		case MapItemID:
 			i, err := uuid.Parse(value)
 			if err != nil {
 				return err
 			}
 			m.ItemID = i
-		case "owner_id":
+		case MapOwnerID:
 			i, err := uuid.Parse(value)
 			if err != nil {
 				return err
 			}
 			m.OwnerID = i
-		case "status":
+		case MapStatus:
 			i, err := strconv.ParseInt(value, 10, 0)
 			if err != nil {
 				return err
 			}
 			m.Status = ItemStatus(int(i))
-		case "timestamp":
+		case MapTimestamp:
 			i, err := strconv.ParseInt(value, 10, 64)
 			if err != nil {
 				return err
@@ -201,12 +213,12 @@ func (m *Message) FromString(src string) error {
 // isValidKey returns if the key is valid for the message
 func isValidKey(key string) bool {
 	validKeys := []string{
-		"id",
-		"topic",
-		"item_id",
-		"owner_id",
-		"status",
-		"timestamp",
+		MapID,
+		MapTopic,
+		MapItemID,
+		MapOwnerID,
+		MapStatus,
+		MapTimestamp,
 	}
 
 	for _, valid := range validKeys {

@@ -10,7 +10,6 @@ import (
 
 	"github.com/google/uuid"
 	"hq.0xa1.red/axdx/scheduler/internal/platform/database/models"
-	"hq.0xa1.red/axdx/scheduler/internal/platform/nats"
 	"hq.0xa1.red/axdx/scheduler/internal/schedule"
 )
 
@@ -87,32 +86,44 @@ func healthcheckHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func testHandler(w http.ResponseWriter, r *http.Request) {
-	models, err := schedule.Collect(context.Background(), uuid.MustParse("191f6386-c5c2-4aa0-878b-890bc0ad96e1"))
+	userID := uuid.MustParse("191f6386-c5c2-4aa0-878b-890bc0ad96e1")
+	models, err := schedule.Collect(context.Background(), userID)
 	if err != nil {
 		Err(w, http.StatusInternalServerError, fmt.Errorf("%s: getting queue: %v", r.URL.String(), err))
 		return
 	}
 
-	queue, err := nats.NewNats()
-	if err != nil {
-		Err(w, http.StatusInternalServerError, fmt.Errorf("%s: connecting to NATS: %w", r.URL.String(), err))
-		return
-	}
+	// queue, err := nats.NewNats()
+	// if err != nil {
+	// 	Err(w, http.StatusInternalServerError, fmt.Errorf("%s: connecting to NATS: %w", r.URL.String(), err))
+	// 	return
+	// }
 	for _, m := range models {
 		if m.Topic == "" {
 			m.Topic = schedule.DefaultTopic()
 		}
-		buf, err := json.Marshal(m)
+
+		subject := fmt.Sprintf("%s.%s", m.Topic, m.OwnerID.String())
+		str, err := m.ToString()
 		if err != nil {
-			Err(w, http.StatusInternalServerError, fmt.Errorf("%s: connecting to NATS: %w", r.URL.String(), err))
+			Err(w, http.StatusInternalServerError, fmt.Errorf("%s: marshaling message to JSON: %v", r.URL.String(), err))
 			return
 		}
-		subject := fmt.Sprintf("%s.%s", m.Topic, m.ID.String())
-		logger.Infow("publishing message", "subject", subject, "item_id", m.ItemID.String(), "message_id", m.ID.String())
-		if err := queue.Publish(subject, buf); err != nil {
-			Err(w, http.StatusInternalServerError, fmt.Errorf("%s: publishing to NATS (%s): %w", r.URL.String(), m.Topic, err))
-			return
+		logger.Infow("dry run", "subject", subject, "message", str)
+
+		if err := schedule.Acknowledge(context.Background(), m.ID, m.OwnerID); err != nil {
+			Err(w, http.StatusInternalServerError, fmt.Errorf("%s: acknowledging message: %v", r.URL.String(), err))
 		}
+		// buf, err := json.Marshal(m)
+		// if err != nil {
+		// 	Err(w, http.StatusInternalServerError, fmt.Errorf("%s: connecting to NATS: %w", r.URL.String(), err))
+		// 	return
+		// }
+		// logger.Infow("publishing message", "subject", subject, "item_id", m.ItemID.String(), "message_id", m.ID.String())
+		// if err := queue.Publish(subject, buf); err != nil {
+		// 	Err(w, http.StatusInternalServerError, fmt.Errorf("%s: publishing to NATS (%s): %w", r.URL.String(), m.Topic, err))
+		// 	return
+		// }
 	}
 
 	w.Write([]byte("successfully triggered queue")) // nolint

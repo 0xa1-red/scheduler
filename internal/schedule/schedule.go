@@ -2,6 +2,7 @@ package schedule
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -30,5 +31,24 @@ func Collect(ctx context.Context, userID uuid.UUID) ([]*models.Message, error) {
 		return nil, err
 	}
 
-	return queue, nil
+	messages := make([]*models.Message, 0)
+	for _, event := range queue {
+		if event[models.MapStatus] == fmt.Sprint(models.ItemStatusPending) {
+			message := models.Message{}
+			if err := message.FromMap(event); err != nil {
+				return nil, err
+			}
+			messages = append(messages, &message)
+		}
+	}
+	return messages, nil
+}
+
+func Acknowledge(ctx context.Context, messageID uuid.UUID, userID uuid.UUID) error {
+	db, err := database.New()
+	if err != nil {
+		return err
+	}
+
+	return db.Acknowledge(ctx, messageID, userID)
 }
