@@ -2,6 +2,13 @@
 
 <!--- next entry here -->
 
+## 0.2.1
+2021-08-21
+
+### Fixes
+
+- use next version (1c5119ba7e2d80d7ccf3cef3e18690c9d6e13893)
+
 ## 0.2.0
 2021-08-21
 
