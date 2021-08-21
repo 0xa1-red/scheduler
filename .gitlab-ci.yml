@@ -1,0 +1,125 @@
+image: golang:1.16-alpine
+
+stages:
+  - check
+  - test
+  - version
+  - build
+
+.base: &base_definition
+  before_script:
+    # set up SSH key
+    - apk --update add git curl
+    - go mod tidy
+
+lint:
+  image:
+    name: golangci/golangci-lint:v1.42.0
+  stage: check
+  script:
+    - go mod tidy
+    - go run build/mage.go linter 
+
+test:
+  stage: test
+  dependencies:
+    - lint
+  <<: *base_definition
+  script:
+    - go run build/mage.go coverage
+  artifacts:
+    paths:
+      - "cover"
+
+commit_and_tag:
+  stage: version
+  image: registry.gitlab.com/juhani/go-semrel-gitlab:v0.21.1
+  script: 
+    - release next-version --allow-current > .next-version # prepare the next version for docker_push step    
+    - release changelog
+    - release commit-and-tag --create-tag-pipeline CHANGELOG.md
+  artifacts:
+    paths:
+      - .next-version
+  allow_failure: true
+  only:
+    - master
+  when: manual
+
+compile:
+  stage: build
+  variables:
+    # https://gitlab.com/juhani/go-semrel-gitlab/-/jobs/609332576
+    RELEASE_BIN: "https://gitlab.com/api/v4/projects/5767443/jobs/272404997/artifacts/release"
+    GITLAB_API_URL: "https://hq.0xa1.red/api/v4/projects/$CI_PROJECT_ID"
+    GIT_SUBMODULE_STRATEGY: recursive
+  <<: *base_definition
+  script:
+    # install release tool
+    - wget -q $RELEASE_BIN
+    - chmod 774 ./release
+    - mv ./release /usr/bin
+
+    - go mod download && go mod tidy
+
+    # export the PATH to include Go's binaries
+    - export PATH="$(go env GOPATH)/bin:$PATH"
+
+    # start the build process
+    - release next-version --allow-current > .release_version
+    - git checkout -- go.mod  # workaround to ignore any go.mod updates by the CI
+    - go mod download && go mod tidy # workaround to make sure we use dependencies from unchanged go.mod
+    - go run build/mage.go release
+
+    - echo "[linux]" > release_info
+    - echo "RELEASE_URL=https://hq.0xa1.red/api/v4/projects/$CI_PROJECT_ID/jobs/$CI_JOB_ID/artifacts/target/linux/especs" >> release_info
+    - echo "RELEASE_SHA256=$(<target/linux/especs.sha256)" >> release_info
+    - echo "RELEASE_MD5=$(<target/linux/especs.md5)" >> release_info
+
+    - echo "" >> release_info
+    - echo "[darwin]" >> release_info
+    - echo "RELEASE_URL=https://hq.0xa1.red/api/v4/projects/$CI_PROJECT_ID/jobs/$CI_JOB_ID/artifacts/target/darwin/especs" >> release_info
+    - echo "RELEASE_SHA256=$(<target/darwin/especs.sha256)" >> release_info
+    - echo "RELEASE_MD5=$(<target/darwin/especs.md5)" >> release_info
+
+    - echo "" >> release_info
+    - echo "RELEASE_SHA=$CI_COMMIT_SHA" >> release_info
+    - echo "RELEASE_VERSION=$(<.release_version)" >> release_info
+    - echo "RELEASE_DATE=$(date +%FT%T%z)" >> release_info
+
+    # add download links
+    - curl --request POST --header "PRIVATE-TOKEN:$GL_TOKEN" --data name="especs-linux (md5:$(<target/linux/especs.md5))" --data url="$GITLAB_API_URL/jobs/$CI_JOB_ID/artifacts/target/linux/especs" "$GITLAB_API_URL/releases/v$(<.release_version)/assets/links"
+    - curl --request POST --header "PRIVATE-TOKEN:$GL_TOKEN" --data name="especs-macos (md5:$(<target/darwin/especs.md5))" --data url="$GITLAB_API_URL/jobs/$CI_JOB_ID/artifacts/target/darwin/especs" "$GITLAB_API_URL/releases/v$(<.release_version)/assets/links"
+
+    - curl --request POST --header "PRIVATE-TOKEN:$GL_TOKEN" --data name="Manifest file" --data url="$GITLAB_API_URL/jobs/$CI_JOB_ID/artifacts/release_info" "$GITLAB_API_URL/releases/v$(<.release_version)/assets/links"
+  artifacts:
+    paths:
+      - release_info
+      - target/
+  except:
+    - tags
+  when: manual
+  only:
+    - master
+
+docker_push:
+  variables:
+    RELEASE_BIN: "https://gitlab.com/api/v4/projects/5767443/jobs/272404997/artifacts/release"
+    IMAGE_NAME: registry.0xa1.red:5050/axdx/scheduler 
+  stage: build
+  script:
+    - wget -q $RELEASE_BIN
+    - chmod 774 ./release
+    - ./release next-version --allow-current > .release_version
+    - export VERSION=$(cat .release_version)
+    - docker build --pull -t $IMAGE_NAME:$VERSION .
+    - docker tag $IMAGE_NAME:$VERSION $IMAGE_NAME:latest
+    - docker push $IMAGE_NAME:$VERSION
+    - docker push $IMAGE_NAME:latest
+  tags:
+    - shell-executor
+  when: manual
+  only:
+    - master
+  dependencies:
+    - commit_and_tag

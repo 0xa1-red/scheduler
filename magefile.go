@@ -12,6 +12,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -93,6 +94,7 @@ func Coverage() error {
 
 	env := map[string]string{"CGO_ENABLED": "0"}
 	commitHash := getCommitHash()
+	log.Printf("commit hash: %s", commitHash)
 	err := runWithV(env, "go", "test", "-coverprofile", fmt.Sprintf("./cover/%s.out", commitHash), "./...")
 	if err != nil {
 		return fmt.Errorf("could not run coverage test: %w", err)
@@ -189,7 +191,7 @@ func Install() error {
 	// mg.SerialDeps runs the functions passed to it in the order they appear
 	env := flagEnv()
 	env["CGO_ENABLED"] = "0"
-	mg.SerialDeps(Clean, Test, Linter)
+	mg.SerialDeps(Clean, Test)
 	return runWithV(env, "go", "install", "-ldflags", ldflags, "-tags", "netgo", packageNamePrefix+binaries[0])
 }
 

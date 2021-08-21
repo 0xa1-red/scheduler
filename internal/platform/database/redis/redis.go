@@ -29,8 +29,18 @@ func NewClient() (*Client, error) {
 			DB:       database,
 		}
 
-		c := redis.NewClient(opts)
-		_, err := c.Ping(context.Background()).Result()
+		var err error
+		var c *redis.Client
+		for i := 0; i < Retries(); i++ {
+			if i > 0 {
+				time.Sleep(Interval())
+			}
+			c = redis.NewClient(opts)
+			_, err = c.Ping(context.Background()).Result()
+			if err == nil {
+				break
+			}
+		}
 		if err != nil {
 			return nil, err
 		}

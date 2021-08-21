@@ -13,7 +13,6 @@ import (
 	"hq.0xa1.red/axdx/scheduler/internal/logging"
 	"hq.0xa1.red/axdx/scheduler/internal/platform/api"
 	"hq.0xa1.red/axdx/scheduler/internal/platform/database"
-	"hq.0xa1.red/axdx/scheduler/internal/platform/database/redis"
 )
 
 var (
@@ -45,8 +44,6 @@ func main() {
 
 	database.SetBackend(string(database.KindRedis))
 
-	redis.SetPassword("test")
-
 	_, dbErr := database.New()
 	if dbErr != nil {
 		logger.Panicw("error connecting to the database", "kind", database.Backend(), "error", dbErr)
@@ -57,7 +54,6 @@ func main() {
 		database.Close()
 	}()
 
-	api.SetAddress("127.0.0.1:8080")
 	httpServer := api.Start()
 
 Loop:
