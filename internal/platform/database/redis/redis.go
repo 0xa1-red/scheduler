@@ -57,10 +57,8 @@ func (c *Client) Schedule(ctx context.Context, msg models.Message) error {
 
 	tx.HSet(ctx, fmt.Sprintf("messages/%s", msg.ID), msg.ToMap()) // nolint
 
-	tx.Incr(ctx, "messages/counter").Result() // nolint
-
 	member := &redis.Z{
-		Score:  float64(msg.Timestamp.UnixNano()),
+		Score:  float64(msg.Timestamp.Unix()),
 		Member: msg.ID.String(),
 	}
 
@@ -71,8 +69,8 @@ func (c *Client) Schedule(ctx context.Context, msg models.Message) error {
 	return err
 }
 
-func (c *Client) GetQueue(ctx context.Context, userID uuid.UUID, timestamp time.Time) ([]*models.Message, error) {
-	collection := make([]*models.Message, 0)
+func (c *Client) GetQueue(ctx context.Context, userID uuid.UUID, timestamp time.Time) ([]map[string]string, error) {
+	collection := make([]map[string]string, 0)
 
 	ranges := redis.ZRangeArgs{
 		Key:     fmt.Sprintf("messages/schedule/%s", userID.String()),
@@ -89,20 +87,26 @@ func (c *Client) GetQueue(ctx context.Context, userID uuid.UUID, timestamp time.
 	sort.Slice(col, func(i, j int) bool {
 		return col[i].Score < col[j].Score
 	})
-
 	for _, member := range col {
 		event, err := c.HGetAll(ctx, fmt.Sprintf("messages/%s", member.Member.(string))).Result()
 		if err != nil {
 			return nil, err
 		}
-		msg := &models.Message{}
-		if err := msg.FromMap(event); err != nil {
-			return nil, err
-		}
-		collection = append(collection, msg)
+		collection = append(collection, event)
 	}
 
 	return collection, nil
+}
+
+func (c *Client) Acknowledge(ctx context.Context, messageID uuid.UUID, userID uuid.UUID) error {
+	tx := c.TxPipeline()
+
+	tx.HSet(ctx, fmt.Sprintf("messages/%s", messageID.String()), models.MapStatus, fmt.Sprint(models.ItemStatusDone))
+
+	tx.ZRem(ctx, fmt.Sprintf("messages/schedule/%s", userID.String()), messageID.String())
+
+	_, err := tx.Exec(ctx)
+	return err
 }
 
 // Close closes the connection

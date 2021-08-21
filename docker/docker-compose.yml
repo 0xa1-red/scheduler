@@ -20,7 +20,7 @@ services:
         networks:
             - scheduler
     scheduler:
-        image: scheduler:0.1.0
+        image: scheduler:0.2.0-dev
         ports:
             - 80:80
         networks:
