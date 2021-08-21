@@ -2,6 +2,13 @@
 
 <!--- next entry here -->
 
+## 0.2.0
+2021-08-21
+
+### Features
+
+- add git to build phase (d4f5245ae0c5e5ecb3069025e2f167802935517d)
+
 ## 0.1.0
 2021-08-21
 
