@@ -119,3 +119,7 @@ docker_push:
   tags:
     - shell-executor
   when: manual
+  only:
+    - master
+  dependencies:
+    - commit_and_tag
