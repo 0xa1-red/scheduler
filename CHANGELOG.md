@@ -2,6 +2,13 @@
 
 <!--- next entry here -->
 
+## 0.3.0
+2021-08-24
+
+### Features
+
+- create release file (c6950053ac67027b7b8642a2472217c466e21959)
+
 ## 0.2.1
 2021-08-21
 
