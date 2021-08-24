@@ -2,6 +2,13 @@
 
 <!--- next entry here -->
 
+## 0.3.3
+2021-08-24
+
+### Fixes
+
+- docker login argument order (35956697c614aa8e2829bc6c5fdb8d3cbadec2ac)
+
 ## 0.3.2
 2021-08-24
 
