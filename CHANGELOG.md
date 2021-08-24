@@ -2,6 +2,13 @@
 
 <!--- next entry here -->
 
+## 0.3.4
+2021-08-24
+
+### Fixes
+
+- docker login arguments (36c795835596e879d08e7545872d1168cbef8a70)
+
 ## 0.3.3
 2021-08-24
 
