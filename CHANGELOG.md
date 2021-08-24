@@ -2,6 +2,13 @@
 
 <!--- next entry here -->
 
+## 0.3.2
+2021-08-24
+
+### Fixes
+
+- vault argument order (52e3290c54e0b2471c8b58d1f8b3ff1a2b40562e)
+
 ## 0.3.1
 2021-08-24
 
