@@ -113,7 +113,7 @@ docker_push:
     - vault login token=$VAULT_TOKEN
     - export USER=$(vault kv get -field username secrets/docker/registry)
     - export PASSWORD=$(vault kv get -field password secrets/docker/registry)
-    - docker login -u ${USERNAME} -p ${PASSWORD} https://registry.0xa1.red:5050
+    - docker login -u $USERNAME -p $PASSWORD https://registry.0xa1.red:5050
     - export VERSION=$(cat .next-version)
     - cp .next-version .release_version
     - docker build --pull -t $IMAGE_NAME:$VERSION .
