@@ -105,9 +105,15 @@ compile:
 docker_push:
   variables:
     RELEASE_BIN: "https://gitlab.com/api/v4/projects/5767443/jobs/272404997/artifacts/release"
-    IMAGE_NAME: registry.0xa1.red:5050/axdx/scheduler 
+    IMAGE_NAME: registry.0xa1.red:5050/axdx/scheduler
+    VAULT_ADDR: "https://hq.0xa1.red:8200"
+    VAULT_SKIP_VERIFY: "true"
   stage: build
   script:
+    - vault login token=$VAULT_TOKEN
+    - export USER=$(vault kv get secrets/docker/registry -field username)
+    - export PASSWORD=$(vault kv get secrets/docker/registry -field password)
+    - docker login https://registry.0xa1.red:5050 -u ${USERNAME} -p ${PASSWORD}
     - export VERSION=$(cat .next-version)
     - cp .next-version .release_version
     - docker build --pull -t $IMAGE_NAME:$VERSION .
