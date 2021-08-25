@@ -9,7 +9,7 @@ stages:
 .base: &base_definition
   before_script:
     # set up SSH key
-    - apk --update add git curl ca-certificates
+    - apk --update add git curl
     - go mod tidy
 
 lint:
@@ -107,10 +107,8 @@ docker_push:
     RELEASE_BIN: "https://gitlab.com/api/v4/projects/5767443/jobs/272404997/artifacts/release"
     IMAGE_NAME: registry.0xa1.red:5050/axdx/scheduler
     VAULT_ADDR: "https://hq.0xa1.red:8200"
-    VAULT_SKIP_VERIFY: "true"
   stage: build
   script:
-    - echo $ROOT_CERT > /usr/share/ca-certificates/hq.0xa1.red.root.pem && update-ca-certificates
     - vault login token=$VAULT_TOKEN
     - export USER=$(vault kv get -field username secrets/docker/registry)
     - export PASSWORD=$(vault kv get -field password secrets/docker/registry)
