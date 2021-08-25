@@ -2,6 +2,13 @@
 
 <!--- next entry here -->
 
+## 0.5.0
+2021-08-25
+
+### Features
+
+- do not skip TLS verification (a9cd48e0a785203fd614a3edb0176464e18512a9)
+
 ## 0.4.0
 2021-08-25
 
