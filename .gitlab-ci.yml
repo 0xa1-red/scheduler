@@ -9,7 +9,7 @@ stages:
 .base: &base_definition
   before_script:
     # set up SSH key
-    - apk --update add git curl
+    - apk --update add git curl ca-certificates
     - go mod tidy
 
 lint:
@@ -110,6 +110,7 @@ docker_push:
     VAULT_SKIP_VERIFY: "true"
   stage: build
   script:
+    - echo $ROOT_CERT > /usr/share/ca-certificates/hq.0xa1.red.root.pem && update-ca-certificates
     - vault login token=$VAULT_TOKEN
     - export USER=$(vault kv get -field username secrets/docker/registry)
     - export PASSWORD=$(vault kv get -field password secrets/docker/registry)
