@@ -2,6 +2,13 @@
 
 <!--- next entry here -->
 
+## 0.4.0
+2021-08-25
+
+### Features
+
+- add root cert for 0xa1 CA (4183b4f7c61e847f93991fbd3ac062b4ae44b298)
+
 ## 0.3.5
 2021-08-24
 
