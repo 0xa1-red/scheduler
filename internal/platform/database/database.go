@@ -28,7 +28,7 @@ const (
 // scheduled events
 type Connection interface {
 	Schedule(ctx context.Context, message models.Message) error
-	GetQueue(ctx context.Context, userID uuid.UUID, timestamp time.Time) ([]map[string]string, error)
+	GetQueue(ctx context.Context, timestamp time.Time, userIDs []uuid.UUID) ([]map[string]string, []error)
 	Acknowledge(ctx context.Context, messageID uuid.UUID, userID uuid.UUID) error
 	Close() error
 }

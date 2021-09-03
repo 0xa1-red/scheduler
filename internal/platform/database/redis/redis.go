@@ -4,7 +4,7 @@ package redis
 import (
 	"context"
 	"fmt"
-	"sort"
+	"sync"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -62,39 +62,77 @@ func (c *Client) Schedule(ctx context.Context, msg models.Message) error {
 		Member: msg.ID.String(),
 	}
 
-	tx.ZAdd(ctx, fmt.Sprintf("messages/schedule/%s", msg.OwnerID.String()), member) // nolint
+	key := fmt.Sprintf("messages/schedule/%s", msg.OwnerID.String())
+	tx.ZAdd(ctx, key, member) // nolint
+
+	tx.SAdd(ctx, "schedules", key)
 
 	_, err := tx.Exec(ctx)
 
 	return err
 }
 
-func (c *Client) GetQueue(ctx context.Context, userID uuid.UUID, timestamp time.Time) ([]map[string]string, error) {
+func (c *Client) GetQueue(ctx context.Context, timestamp time.Time, userIDs []uuid.UUID) ([]map[string]string, []error) {
 	collection := make([]map[string]string, 0)
 
-	ranges := redis.ZRangeArgs{
-		Key:     fmt.Sprintf("messages/schedule/%s", userID.String()),
-		Start:   "0",
-		Stop:    fmt.Sprintf("%d", timestamp.UnixNano()),
-		ByScore: true,
-	}
-
-	col, err := c.ZRangeArgsWithScores(ctx, ranges).Result()
-	if err != nil {
-		return nil, err
-	}
-
-	sort.Slice(col, func(i, j int) bool {
-		return col[i].Score < col[j].Score
-	})
-	for _, member := range col {
-		event, err := c.HGetAll(ctx, fmt.Sprintf("messages/%s", member.Member.(string))).Result()
+	keys := []string{}
+	var err error
+	if len(userIDs) == 0 {
+		keys, err = c.getKeys(ctx)
 		if err != nil {
-			return nil, err
+			return collection, []error{err}
 		}
-		collection = append(collection, event)
+	} else {
+		for _, id := range userIDs {
+			keys = append(keys, fmt.Sprintf("messages/schedule/%s", id.String()))
+		}
 	}
 
+	var errors []error
+	errorChan := make(chan error)
+	incoming := make(chan map[string]string)
+	stop := make(chan struct{})
+	go func(errorChan chan error, incoming chan map[string]string, stop chan struct{}) {
+		for {
+			select {
+			case <-stop:
+				return
+			case e := <-errorChan:
+				errors = append(errors, e)
+			case m := <-incoming:
+				collection = append(collection, m)
+			}
+		}
+	}(errorChan, incoming, stop)
+
+	wg := sync.WaitGroup{}
+	for _, key := range keys {
+		wg.Add(1)
+		go func(key string) {
+			ranges := redis.ZRangeArgs{
+				Key:     key,
+				Start:   "0",
+				Stop:    fmt.Sprintf("%d", timestamp.UnixNano()),
+				ByScore: true,
+			}
+
+			col, err := c.ZRangeArgsWithScores(ctx, ranges).Result()
+			if err != nil {
+				errorChan <- err
+			}
+
+			for _, member := range col {
+				event, err := c.HGetAll(ctx, fmt.Sprintf("messages/%s", member.Member.(string))).Result()
+				if err != nil {
+					errorChan <- err
+				}
+				incoming <- event
+			}
+			wg.Done()
+		}(key)
+	}
+
+	wg.Wait()
 	return collection, nil
 }
 
@@ -115,4 +153,21 @@ func Close() error {
 		return client.Close()
 	}
 	return nil
+}
+
+func Flush() error {
+	if client == nil {
+		return nil
+	}
+
+	_, err := client.FlushDB(context.Background()).Result()
+	return err
+}
+
+func (c *Client) getKeys(ctx context.Context) ([]string, error) {
+	members, err := c.SMembers(ctx, "schedules").Result()
+	if err != nil {
+		return nil, err
+	}
+	return members, nil
 }

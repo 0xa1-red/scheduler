@@ -3,6 +3,7 @@ package schedule
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,15 +21,15 @@ func Add(ctx context.Context, message models.Message) error {
 	return err
 }
 
-func Collect(ctx context.Context, userID uuid.UUID) ([]*models.Message, error) {
+func Collect(ctx context.Context, ids ...uuid.UUID) ([]*models.Message, []error) {
 	db, err := database.New()
 	if err != nil {
-		return nil, err
+		return nil, []error{err}
 	}
 
-	queue, err := db.GetQueue(ctx, userID, time.Now())
-	if err != nil {
-		return nil, err
+	queue, errors := db.GetQueue(ctx, time.Now(), ids)
+	if len(errors) > 0 {
+		return nil, errors
 	}
 
 	messages := make([]*models.Message, 0)
@@ -36,11 +37,16 @@ func Collect(ctx context.Context, userID uuid.UUID) ([]*models.Message, error) {
 		if event[models.MapStatus] == fmt.Sprint(models.ItemStatusPending) {
 			message := models.Message{}
 			if err := message.FromMap(event); err != nil {
-				return nil, err
+				return nil, []error{err}
 			}
 			messages = append(messages, &message)
 		}
 	}
+
+	sort.Slice(messages, func(i, j int) bool {
+		return messages[i].Timestamp.Before(messages[j].Timestamp)
+	})
+
 	return messages, nil
 }
 
