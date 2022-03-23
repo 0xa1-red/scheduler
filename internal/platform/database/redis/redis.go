@@ -58,7 +58,7 @@ func (c *Client) Schedule(ctx context.Context, msg models.Message) error {
 	tx.HSet(ctx, fmt.Sprintf("messages/%s", msg.ID), msg.ToMap()) // nolint
 
 	member := &redis.Z{
-		Score:  float64(msg.Timestamp.Unix()),
+		Score:  float64(msg.Timestamp.UnixNano()),
 		Member: msg.ID.String(),
 	}
 
