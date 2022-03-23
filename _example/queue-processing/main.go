@@ -50,11 +50,7 @@ func main() {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				pastPresent := rand.Intn(2) // nolint
-				if pastPresent == 0 {
-					pastPresent -= 1
-				}
-				minutes := time.Duration(pastPresent * (rand.Intn(300) + 1)) // nolint
+				minutes := time.Duration(rand.Intn(300) + 1) // nolint
 				tt := time.Now().Add(minutes * time.Second)
 				item := itemIDs[rand.Intn(2)] // nolint
 				message := models.NewMessage(tt, "queue", item, id)
@@ -66,18 +62,22 @@ func main() {
 	}
 	fmt.Printf("[*] Generating took %s\n\n", time.Since(startGen))
 	wg.Wait()
-	start := time.Now()
-	queue, errors := schedule.Collect(context.Background())
-	log.Printf("[*] Time of collection: %s", time.Now().Format("15:04:05"))
-	if len(errors) > 0 {
-		log.Panicf("%+v", errors)
-	}
-	for i, message := range queue {
-		fmt.Printf("%d - %s - %s: %s\n", i+1, message.Timestamp.Format("15:04:05"), message.ID.String(), items[message.ItemID])
-		if err := db.Acknowledge(context.Background(), message.ID, message.OwnerID); err != nil {
-			log.Printf("ERROR: failed to acknowledge message %s", message.ID.String())
+
+	t := time.NewTicker(time.Second)
+	for range t.C {
+		start := time.Now()
+		queue, errors := schedule.Collect(context.Background())
+		log.Printf("[*] Time of collection: %s", time.Now().Format("15:04:05"))
+		if len(errors) > 0 {
+			log.Panicf("%+v", errors)
 		}
+		for i, message := range queue {
+			fmt.Printf("%d - %s - %s: %s\n", i+1, message.Timestamp.Format("15:04:05"), message.ID.String(), items[message.ItemID])
+			if err := db.Acknowledge(context.Background(), message.ID, message.OwnerID); err != nil {
+				log.Printf("ERROR: failed to acknowledge message %s", message.ID.String())
+			}
+		}
+		fmt.Printf("[*] Collection took %s\n\n", time.Since(start))
 	}
-	fmt.Printf("[*] Collection took %s\n\n", time.Since(start))
 
 }
