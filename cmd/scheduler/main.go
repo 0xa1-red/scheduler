@@ -8,11 +8,13 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"hq.0xa1.red/axdx/scheduler/internal/config"
 	"hq.0xa1.red/axdx/scheduler/internal/logging"
 	"hq.0xa1.red/axdx/scheduler/internal/platform/api"
 	"hq.0xa1.red/axdx/scheduler/internal/platform/database"
+	"hq.0xa1.red/axdx/scheduler/internal/pusher/stdout"
 )
 
 var (
@@ -56,6 +58,9 @@ func main() {
 
 	httpServer := api.Start()
 
+	pusher := stdout.New()
+	pusher.Start(time.Second)
+
 Loop:
 	for {
 		select {
@@ -63,13 +68,19 @@ Loop:
 			fmt.Printf("\r") // This just to remove the nasty ^C :shrug:
 			logger.Info("shutting down http server")
 			httpServer.Shutdown(context.TODO()) // nolint
+			pusher.Shutdown(context.TODO())     // nolint
 			break Loop
-		case err := <-httpServer.ErrorChannel:
-			if err != nil {
-				logger.Errorw("http server error", "error", err)
+		case httpError := <-httpServer.ErrorChannel:
+			if httpError != nil {
+				logger.Errorw("http server error", "error", httpError)
 			}
 			break Loop
+		case pusherError := <-pusher.Errors():
+			if pusherError != nil {
+				logger.Errorw("pusher error", "error", pusherError)
+			}
 		}
+
 	}
 }
 

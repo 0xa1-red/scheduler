@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"hq.0xa1.red/axdx/scheduler/internal/platform/database/models"
+	"hq.0xa1.red/axdx/scheduler/internal/platform/nats"
 	"hq.0xa1.red/axdx/scheduler/internal/schedule"
 )
 
@@ -24,22 +25,8 @@ func scheduleHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ownerID := post.GetString("owner_id", "")
-	itemID := post.GetString("item_id", "")
 	topic := post.GetString("topic", schedule.DefaultTopic())
 	timestamp := post.GetString("timestamp", fmt.Sprintf("%d", time.Now().UnixNano()))
-
-	if ownerID == "" {
-		err := fmt.Errorf("%s: owner_id field cannot be empty", r.URL.String())
-		Err(w, http.StatusBadRequest, err)
-		return
-	}
-
-	if itemID == "" {
-		err := fmt.Errorf("%s: item_id field cannot be empty", r.URL.String())
-		Err(w, http.StatusBadRequest, err)
-		return
-	}
 
 	t, err := strconv.ParseInt(timestamp, 10, 64)
 	if err != nil {
@@ -48,13 +35,13 @@ func scheduleHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	scheduleTimestamp := time.Unix(0, t)
 
-	id, err := uuid.Parse(itemID)
+	id, err := post.GetUUID("item_id")
 	if err != nil {
 		Err(w, http.StatusInternalServerError, fmt.Errorf("%s: parse item ID: %v", r.URL.String(), err))
 		return
 	}
 
-	oid, err := uuid.Parse(ownerID)
+	oid, err := post.GetUUID("owner_id")
 	if err != nil {
 		Err(w, http.StatusInternalServerError, fmt.Errorf("%s: parse owner ID: %v", r.URL.String(), err))
 		return
@@ -93,11 +80,13 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// queue, err := nats.NewNats()
-	// if err != nil {
-	// 	Err(w, http.StatusInternalServerError, fmt.Errorf("%s: connecting to NATS: %w", r.URL.String(), err))
-	// 	return
-	// }
+	logger.Info("Queue length: ", len(models))
+
+	queue, natsErr := nats.NewNats()
+	if natsErr != nil {
+		Err(w, http.StatusInternalServerError, fmt.Errorf("%s: connecting to NATS: %w", r.URL.String(), natsErr))
+		return
+	}
 	for _, m := range models {
 		if m.Topic == "" {
 			m.Topic = schedule.DefaultTopic()
@@ -114,16 +103,16 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 		if err := schedule.Acknowledge(context.Background(), m.ID, m.OwnerID); err != nil {
 			Err(w, http.StatusInternalServerError, fmt.Errorf("%s: acknowledging message: %v", r.URL.String(), err))
 		}
-		// buf, err := json.Marshal(m)
-		// if err != nil {
-		// 	Err(w, http.StatusInternalServerError, fmt.Errorf("%s: connecting to NATS: %w", r.URL.String(), err))
-		// 	return
-		// }
-		// logger.Infow("publishing message", "subject", subject, "item_id", m.ItemID.String(), "message_id", m.ID.String())
-		// if err := queue.Publish(subject, buf); err != nil {
-		// 	Err(w, http.StatusInternalServerError, fmt.Errorf("%s: publishing to NATS (%s): %w", r.URL.String(), m.Topic, err))
-		// 	return
-		// }
+		buf, err := json.Marshal(m)
+		if err != nil {
+			Err(w, http.StatusInternalServerError, fmt.Errorf("%s: connecting to NATS: %w", r.URL.String(), err))
+			return
+		}
+		logger.Infow("publishing message", "subject", subject, "item_id", m.ItemID.String(), "message_id", m.ID.String())
+		if err := queue.Publish(subject, buf); err != nil {
+			Err(w, http.StatusInternalServerError, fmt.Errorf("%s: publishing to NATS (%s): %w", r.URL.String(), m.Topic, err))
+			return
+		}
 	}
 
 	w.Write([]byte("successfully triggered queue")) // nolint

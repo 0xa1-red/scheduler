@@ -4,11 +4,11 @@ api:
 database:
   kind: redis
   redis:
-    address: "redis:6379"
+    address: "127.0.0.1:6379"
     password: "test"
     database: 0
     retries: 3
     interval: 1s
 nats:
-  address: "nats:4222"
+  address: "127.0.0.1:4222"
   default_subject: "updates"

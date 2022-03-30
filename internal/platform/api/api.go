@@ -46,10 +46,6 @@ func Start() *API {
 func init() {
 	router = mux.NewRouter()
 
-	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("hi")) //nolint
-	})
-
 	router.HandleFunc("/schedule", scheduleHandler).Methods(http.MethodPost)
 	router.HandleFunc("/health", healthcheckHandler).Methods(http.MethodGet, http.MethodHead)
 	router.HandleFunc("/test", testHandler).Methods(http.MethodGet)

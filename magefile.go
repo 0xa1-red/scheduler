@@ -1,3 +1,4 @@
+//go:build mage
 // +build mage
 
 /*
@@ -155,7 +156,7 @@ func Linter() error {
 	return lookupErr
 }
 
-// EssenceD builds essenced binary
+// Scheduler builds scheduler binary
 func Scheduler() error {
 
 	for _, binary := range binaries {
@@ -169,7 +170,7 @@ func Scheduler() error {
 	return nil
 }
 
-// Race builds the essence binary with race condition track support
+// Race builds the scheduler binary with race condition track support
 func Race() error {
 
 	for _, binary := range binaries {
@@ -185,7 +186,7 @@ func Race() error {
 	return nil
 }
 
-// Install installs the essenced binary
+// Install installs the scheduler binary
 func Install() error {
 
 	// mg.SerialDeps runs the functions passed to it in the order they appear
@@ -195,7 +196,7 @@ func Install() error {
 	return runWithV(env, "go", "install", "-ldflags", ldflags, "-tags", "netgo", packageNamePrefix+binaries[0])
 }
 
-// Release compiles all essence binaries and targets after a test run
+// Release compiles all scheduler binaries and targets after a test run
 func Release() error {
 
 	env := flagEnv()

@@ -2,7 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+
+	"github.com/google/uuid"
 )
 
 // PostData is the POST data from the request
@@ -40,6 +43,19 @@ func (pd *PostData) GetString(key, def string) string {
 		return v
 	}
 	return def
+}
+
+func (pd *PostData) GetUUID(key string) (uuid.UUID, error) {
+	val := pd.GetString(key, "")
+	if val == "" {
+		return uuid.Nil, fmt.Errorf("%s field cannot be empty", key)
+	}
+
+	r, err := uuid.Parse(val)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("failed to parse %s: %w", key, err)
+	}
+	return r, nil
 }
 
 // Err logs an error message and writes an error to the response
